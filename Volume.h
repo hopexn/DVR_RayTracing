@@ -3,11 +3,12 @@
 
 #include <iostream>
 #include "utils.h"
+#include "TF1D.h"
 
 class Volume {
 
 public:
-    Volume(){};
+    Volume() {};
 
     bool loadRawData(const char *filename);
 
@@ -23,6 +24,8 @@ public:
     double xfSize, yfSize, zfSize;
 
     double xpSize, ypSize, zpSize;
+
+    TF1D tf1d;
 };
 
 

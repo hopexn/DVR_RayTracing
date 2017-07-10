@@ -56,8 +56,17 @@ bool Volume::loadRawData(const char *filename) {
         cout << "Memory is full!" << endl;
         exit(1);
     }
+    string tfFile = filePath.substr(0, filePath.rfind('.') + 1);
+    tfFile += "TF1D";
+    tf1d.loadTF(tfFile);
+
+    for (int i = 0; i < tf1d.keys.size(); i++) {
+        cout << tf1d.keys[i].index << ": " << tf1d.keys[i].color.r << " " << tf1d.keys[i].color.g << " "
+             << tf1d.keys[i].color.b << " " << tf1d.keys[i].color.a << endl;
+    }
 
     fread(data, sizeof(unsigned char), xiSize * yiSize * ziSize, fp);
+
 
     return true;
 }
