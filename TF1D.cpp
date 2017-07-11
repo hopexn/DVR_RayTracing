@@ -15,7 +15,7 @@ void TF1D::loadTF(string filename) {
     }
 }
 
-glm::vec4 TF1D::trans_func(unsigned char index) {
+glm::vec4 TF1D::trans_func(float index) {
     int i;
     for (i = 0; i < keys.size() - 1; i++) {
         if (keys[i].index <= index && keys[i + 1].index >= index) {

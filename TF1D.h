@@ -19,7 +19,7 @@ class TF1D {
 public:
     TF1D(){};
     void loadTF(string filename);
-    glm::vec4 trans_func(unsigned char index);
+    glm::vec4 trans_func(float index);
     vector<Key> keys;
 };
 #endif //RAYTRACING_TF1D_H

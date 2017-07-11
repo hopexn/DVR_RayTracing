@@ -125,6 +125,11 @@ float caculate_leave_dist(vec3 cam_pos, vec3 ray_dir) {
     return 0;
 }
 
+float getVolumeValue(Volume volume, vec3 pos) {
+
+    return 0;
+}
+
 int main(int argc, char **argv) {
     int img_width = 256, img_height = 256;
 
@@ -159,19 +164,39 @@ int main(int argc, char **argv) {
     vec3 cam_up(0, 1, 0);
     vec3 cam_right = fastNormalize(cross(cam_dir, cam_up));
 
-    float screen_dist = 5.0f;
+    float screen_dist = 8.0f;
+
+    cout << caculate_enter_dist(cam_pos, cam_dir) << " " << caculate_leave_dist(cam_pos, cam_dir) << endl;
 
     vec3 screen_center = screen_dist * cam_dir + cam_pos;
 
+    float step_dist = 1.0f / volume.ziSize;
+
     for (int i = 0; i < img_height; i++) {
         for (int j = 0; j < img_width; j++) {
-            vec3 pixel_pos = (-0.5f + i * 1.0f / img_width) * cam_right +
-                             (-0.5f + j * 1.0f / img_height) * cam_up;
+            vec3 pixel_pos = screen_center + (-0.5f + (float) i / img_width) * cam_right +
+                             (-0.5f + (float) j / img_height) * cam_up;
             //光线方向
             vec3 ray_dir = fastNormalize(pixel_pos - cam_pos);
             //计算进入点与离开点
-
-
+            float begin = caculate_enter_dist(cam_pos, ray_dir);
+            float end = caculate_leave_dist(cam_pos, ray_dir);
+            glm::vec3 color_cum(0, 0, 0);
+            float opacity_cum = 0;
+            for (int k = 0; begin + k * step_dist < end; k++) {
+                //TODO
+                float value;  // = volume.data[k * volume.xiSize * volume.yiSize + j * volume.yiSize + i];
+                vec3 pos(i, j, k);
+                value = getVolumeValue(&volume, pos);
+                glm::vec4 color_and_alpha = volume.tf1d.trans_func(value);
+                color_cum.r = glm::min(color_cum.r + (1.0f - opacity_cum) * color_and_alpha.r, 1.0f);
+                color_cum.g = glm::min(color_cum.g + (1.0f - opacity_cum) * color_and_alpha.g, 1.0f);
+                color_cum.b = glm::min(color_cum.b + (1.0f - opacity_cum) * color_and_alpha.b, 1.0f);
+                opacity_cum = glm::min(opacity_cum + (1.0f - opacity_cum) * color_and_alpha.a, 1.0f);
+                if (opacity_cum >= 1.0) break;
+            }
+            image.setPixel(i, j, qRgb((int) (255 * (1 - color_cum.r)), (int) (255 * (1 - color_cum.g)),
+                                      (int) (255 * (1 - color_cum.b))));
         }
     }
 
