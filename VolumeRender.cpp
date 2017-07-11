@@ -8,14 +8,15 @@ VolumeRender::VolumeRender(QWidget *parent) : QWidget(parent) {
     height = 256;
     this->setFixedWidth(width);
     this->setFixedHeight(height);
-    cam_pos = vec3(0.5f, 0.5f, 10.0f);
+    cam_pos = vec3(0.5f, 0.5f, 4.0f);
     cam_up = vec3(0.0f, 1.0f, 0.0f);
     volume_center = vec3(0.5f, 0.5f, 0.5f);
     cam_dir = fastNormalize(volume_center - cam_pos);
-    cam_right = fastNormalize(cross(cam_dir, cam_pos));
-    cam_screen_dist = 8.0f;
-    image = new QImage(width, height, QImage::Format_ARGB32);
-    step_dist = 1.0f / volume.ziSize;
+    //cam_right = fastNormalize(cross(cam_dir, cam_up));
+    cam_right = vec3(1.0f, 0.0f, 0.0f);
+    cam_screen_dist = 3.0f;
+    image = new QImage(width, height, QImage::Format_RGB32);
+    step_dist = 0.001f;
 }
 
 void VolumeRender::paintEvent(QPaintEvent *event) {
@@ -41,7 +42,7 @@ void VolumeRender::updateVolume(string filename) {
  * 前： 5
  * 上： 6
  */
-float VolumeRender::caculate_enter_dist(vec3 cam_pos, vec3 ray_dir) {
+float VolumeRender::caculate_enter_dist(vec3 ray_dir) {
     float lamda = 0.0f;
     vec3 dst_pos;
     if (cam_pos.x > 0.5f) {
@@ -88,8 +89,8 @@ float VolumeRender::caculate_enter_dist(vec3 cam_pos, vec3 ray_dir) {
     return 0;
 }
 
-float VolumeRender::caculate_leave_dist(vec3 cam_pos, vec3 ray_dir) {
-    float lamda;
+float VolumeRender::caculate_leave_dist(vec3 ray_dir) {
+    float lamda = 0.0f;
     vec3 dst_pos;
     if (cam_pos.x < 0.5f) {
         lamda = (1.0f - cam_pos.x) / ray_dir.x;
@@ -148,17 +149,17 @@ void VolumeRender::updateImage() {
 //     - C'(x)表示从x到终点所有能到终点的光强之和
 //     - C(x)表示x点的发光强度
 //     - A'(x)表示从x点到终点的不透明度
-    cout << "Updating Image" << endl;
     vec3 screen_center = cam_screen_dist * cam_dir + cam_pos;
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
-            vec3 pixel_pos = screen_center + (-0.5f + (float) i / width) * cam_right +
-                             (-0.5f + (float) j / height) * cam_up;
+            vec3 pixel_pos = screen_center + (-0.5f + 1.0f * i / width) * cam_right +
+                             (-0.5f + 1.0f * j / height) * cam_up;
             //光线方向
             vec3 ray_dir = fastNormalize(pixel_pos - cam_pos);
             //计算进入点与离开点
-            float begin = caculate_enter_dist(cam_pos, ray_dir);
-            float end = caculate_leave_dist(cam_pos, ray_dir);
+            float begin = caculate_enter_dist(ray_dir);
+            float end = caculate_leave_dist(ray_dir);
+
             glm::vec3 color_cum(0, 0, 0);
             float opacity_cum = 0;
             for (int k = 0; begin + k * step_dist < end; k++) {
@@ -177,3 +178,24 @@ void VolumeRender::updateImage() {
     }
     cout << "Update Image completed" << endl;
 }
+
+void VolumeRender::mousePressEvent(QMouseEvent *event) {
+    last_pos = event->pos();
+}
+
+void VolumeRender::mouseMoveEvent(QMouseEvent *event) {
+    float dx = float(event->x() - last_pos.x()) / width;
+    float dy = float(event->y() - last_pos.y()) / height;
+
+    if (event->buttons() & Qt::LeftButton) {
+        rotationX += 180 * dy;
+        rotationY += 180 * dx;
+        updateImage();
+    } else if (event->buttons() & Qt::RightButton) {
+        rotationX += 180 * dy;
+        rotationZ += 180 * dx;
+        updateImage();
+    }
+    last_pos = event->pos();
+}
+

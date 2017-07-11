@@ -11,6 +11,7 @@
 #include <glm/gtx/fast_square_root.hpp>
 #include "Volume.h"
 
+#include <QMouseEvent>
 
 using namespace std;
 using namespace glm;
@@ -29,12 +30,18 @@ public:
         delete image;
     }
 
-    float caculate_enter_dist(vec3 cam_pos, vec3 ray_dir);
+    float caculate_enter_dist(vec3 ray_dir);
 
-    float caculate_leave_dist(vec3 cam_pos, vec3 ray_dir);
+    float caculate_leave_dist(vec3 ray_dir);
 
 protected:
     void paintEvent(QPaintEvent *event);
+
+    void mousePressEvent(QMouseEvent *event);
+
+    void mouseMoveEvent(QMouseEvent *event);
+
+    void rotate();
 
 private:
     QImage *image;
@@ -48,7 +55,15 @@ private:
     float step_dist;
 
     Volume volume;
+
+    QPoint last_pos;
+
+    float rotationX, rotationY, rotationZ;
 };
+
+void VolumeRender::rotate() {
+
+}
 
 
 #endif //RAYTRACING_VOLUMERENDER_H
