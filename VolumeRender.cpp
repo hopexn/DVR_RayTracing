@@ -17,6 +17,8 @@ void VolumeRender::setImage(QImage *image) {
     }
     this->image = image;
     this->rect = new QRect(0, 0, image->width(), image->height());
+    this->setFixedWidth(image->width());
+    this->setFixedHeight(image->height());
 }
 
 

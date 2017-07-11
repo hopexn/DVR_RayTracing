@@ -2,6 +2,7 @@
 #include <opencv2/opencv.hpp>
 #include <glm/glm.hpp>
 #include <glm/vec3.hpp>
+#include <glm/gtx/fast_square_root.hpp>
 #include <QApplication>
 #include <QImage>
 #include <QRgb>
@@ -14,18 +15,119 @@
 
 using namespace std;
 using namespace cv;
+using namespace glm;
+
 
 double trans_func(unsigned char val) {
     return val / 255.0;
 }
 
+/**
+ * 为每一个面编号：
+ * 底： 1
+ * 左： 2
+ * 后： 3
+ * 右： 4
+ * 前： 5
+ * 上： 6
+ */
+float caculate_enter_dist(vec3 cam_pos, vec3 ray_dir) {
+    float lamda = 0.0f;
+    vec3 dst_pos;
+    if (cam_pos.x > 0.5f) {
+        lamda = (1.0f - cam_pos.x) / ray_dir.x;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.y > 0.0f && dst_pos.y < 1.0f && dst_pos.z > 0.0f && dst_pos.z < 1.0f) {
+            return lamda;
+        }
+    } else {
+        lamda = (0.0f - cam_pos.x) / ray_dir.x;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.y > 0.0f && dst_pos.y < 1.0f && dst_pos.z > 0.0f && dst_pos.z < 1.0f) {
+            return lamda;
+        }
+    }
+
+    if (cam_pos.y > 0.5f) {
+        lamda = (1.0f - cam_pos.y) / ray_dir.y;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.x > 0.0f && dst_pos.x < 1.0f && dst_pos.z > 0.0f && dst_pos.z < 1.0f) {
+            return lamda;
+        }
+    } else {
+        lamda = (0.0f - cam_pos.y) / ray_dir.y;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.x > 0.0f && dst_pos.x < 1.0f && dst_pos.z > 0.0f && dst_pos.z < 1.0f) {
+            return lamda;
+        }
+    }
+
+    if (cam_pos.z > 0.5f) {
+        lamda = (1.0f - cam_pos.z) / ray_dir.z;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.x > 0.0f && dst_pos.x < 1.0f && dst_pos.y > 0.0f && dst_pos.y < 1.0f) {
+            return lamda;
+        }
+    } else {
+        lamda = (0.0f - cam_pos.z) / ray_dir.z;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.x > 0.0f && dst_pos.x < 1.0f && dst_pos.y > 0.0f && dst_pos.y < 1.0f) {
+            return lamda;
+        }
+    }
+    return 0;
+}
+
+float caculate_leave_dist(vec3 cam_pos, vec3 ray_dir) {
+    float lamda = 0.0f;
+    vec3 dst_pos;
+    if (cam_pos.x < 0.5f) {
+        lamda = (1.0f - cam_pos.x) / ray_dir.x;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.y > 0.0f && dst_pos.y < 1.0f && dst_pos.z > 0.0f && dst_pos.z < 1.0f) {
+            return lamda;
+        }
+    } else {
+        lamda = (0.0f - cam_pos.x) / ray_dir.x;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.y > 0.0f && dst_pos.y < 1.0f && dst_pos.z > 0.0f && dst_pos.z < 1.0f) {
+            return lamda;
+        }
+    }
+
+    if (cam_pos.y < 0.5f) {
+        lamda = (1.0f - cam_pos.y) / ray_dir.y;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.x > 0.0f && dst_pos.x < 1.0f && dst_pos.z > 0.0f && dst_pos.z < 1.0f) {
+            return lamda;
+        }
+    } else {
+        lamda = (0.0f - cam_pos.y) / ray_dir.y;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.x > 0.0f && dst_pos.x < 1.0f && dst_pos.z > 0.0f && dst_pos.z < 1.0f) {
+            return lamda;
+        }
+    }
+
+    if (cam_pos.z < 0.5f) {
+        lamda = (1.0f - cam_pos.z) / ray_dir.z;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.x > 0.0f && dst_pos.x < 1.0f && dst_pos.y > 0.0f && dst_pos.y < 1.0f) {
+            return lamda;
+        }
+    } else {
+        lamda = (0.0f - cam_pos.z) / ray_dir.z;
+        dst_pos = cam_pos + lamda * ray_dir;
+        if (dst_pos.x > 0.0f && dst_pos.x < 1.0f && dst_pos.y > 0.0f && dst_pos.y < 1.0f) {
+            return lamda;
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
     int img_width = 256, img_height = 256;
 
-    glm::vec3 eye_pos(0.5, 0.5, 10);
-    glm::vec3 up(0, 1, 0);
-    glm::vec3 right(1, 0, 0);
-    glm::vec3 toward(0, 0, -1);
 
     Volume volume;
     string filename = "assets/volume/aneurism.vifo";
@@ -46,30 +148,52 @@ int main(int argc, char **argv) {
 //     - C'(x)表示从x到终点所有能到终点的光强之和
 //     - C(x)表示x点的发光强度
 //     - A'(x)表示从x点到终点的不透明度
+
     QApplication app(argc, argv);
     QImage image(img_width, img_height, QImage::Format_ARGB32);
-    Mat mat(256, 256, 4);
-    for (int i = 0; i < volume.xiSize; i++) {
-        for (int j = 0; j < volume.yiSize; j++) {
-            glm::vec3 color_cum(0, 0, 0);
-            float opacity_cum = 0;
-            for (int k = volume.ziSize - 1; k >= 0; k--) {
-                glm::vec4 color_and_alpha = volume.tf1d.trans_func(
-                        volume.data[k * volume.xiSize * volume.yiSize + j * volume.yiSize + i]);
-                color_cum.r = min(color_cum.r + (1.0f - opacity_cum) * color_and_alpha.r, 1.0f);
-                color_cum.g = min(color_cum.g + (1.0f - opacity_cum) * color_and_alpha.g, 1.0f);
-                color_cum.b = min(color_cum.b + (1.0f - opacity_cum) * color_and_alpha.b, 1.0f);
-                opacity_cum = min(opacity_cum + (1.0f - opacity_cum) * color_and_alpha.a, 1.0f);
-                //if (opacity_cum == 1.0) break;
-            }
-            image.setPixel(i, j, qRgb((int)(255 * color_cum.r), (int)(255 * color_cum.g), (int)(255 * color_cum.b)));
+    Mat mat(img_width, img_height, 4);
+
+    vec3 cam_pos(0.5f, 0.5f, 10);
+    vec3 vol_center(0.5, 0.5, 0.5);
+    vec3 cam_dir = fastNormalize(vol_center - cam_pos);
+    vec3 cam_up(0, 1, 0);
+    vec3 cam_right = fastNormalize(cross(cam_dir, cam_up));
+
+    float screen_dist = 5.0f;
+
+    vec3 screen_center = screen_dist * cam_dir + cam_pos;
+
+    for (int i = 0; i < img_height; i++) {
+        for (int j = 0; j < img_width; j++) {
+            vec3 pixel_pos = (-0.5f + i * 1.0f / img_width) * cam_right +
+                             (-0.5f + j * 1.0f / img_height) * cam_up;
+            //光线方向
+            vec3 ray_dir = fastNormalize(pixel_pos - cam_pos);
+            //计算进入点与离开点
+
+
         }
     }
 
-//    QLabel label;
-//    label.setPixmap(QPixmap::fromImage(image));
+//    for (int i = 0; i < img_height; i++) {
+//        for (int j = 0; j < img_width; j++) {
+//            glm::vec3 color_cum(0, 0, 0);
+//            float opacity_cum = 0;
+//            for (int k = volume.ziSize - 1; k >= 0; k--) {
+//                glm::vec4 color_and_alpha = volume.tf1d.trans_func(
+//                        volume.data[k * volume.xiSize * volume.yiSize + j * volume.yiSize + i]);
+//                color_cum.r = min(color_cum.r + (1.0f - opacity_cum) * color_and_alpha.r, 1.0f);
+//                color_cum.g = min(color_cum.g + (1.0f - opacity_cum) * color_and_alpha.g, 1.0f);
+//                color_cum.b = min(color_cum.b + (1.0f - opacity_cum) * color_and_alpha.b, 1.0f);
+//                opacity_cum = min(opacity_cum + (1.0f - opacity_cum) * color_and_alpha.a, 1.0f);
+//                if (opacity_cum == 1.0) break;
+//            }
+//            image.setPixel(i, j, qRgb((int) (255 * (1 - color_cum.r)), (int) (255 * (1 - color_cum.g)),
+//                                      (int) (255 * (1 - color_cum.b))));
 //
-//    label.show();
+//        }
+//        }
+
 
     VolumeRender render;
 
