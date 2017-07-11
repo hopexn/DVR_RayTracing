@@ -2,8 +2,12 @@
 #define RAYTRACING_VOLUME_H
 
 #include <iostream>
+#include <glm/glm.hpp>
 #include "utils.h"
 #include "TF1D.h"
+
+using namespace std;
+using namespace glm;
 
 class Volume {
 
@@ -12,7 +16,7 @@ public:
 
     bool loadRawData(const char *filename);
 
-    int getPow2(int size);
+    float getVolumeValue(vec3 pos);
 
     unsigned char *data;
 
@@ -22,8 +26,6 @@ public:
     double xSpace, ySpace, zSpace;
 
     double xfSize, yfSize, zfSize;
-
-    double xpSize, ypSize, zpSize;
 
     TF1D tf1d;
 };

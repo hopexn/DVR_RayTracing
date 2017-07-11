@@ -1,15 +1,5 @@
 #include "Volume.h"
 
-int Volume::getPow2(int size) {
-    double tmp = size / 2.0;
-    int i = 2;
-    while (tmp > 1.0) {
-        i *= 2;
-        tmp = tmp / 2.0;
-    }
-    return i;
-}
-
 bool Volume::loadRawData(const char *filename) {
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
@@ -19,7 +9,6 @@ bool Volume::loadRawData(const char *filename) {
 
     // read volume information
     char dataFile[1024];
-    char opacityFile[1024];
     fscanf(fp, "%d %d %d\n", &xiSize, &yiSize, &ziSize);
     fscanf(fp, "%lf %lf %lf\n", &xSpace, &ySpace, &zSpace);
     fscanf(fp, "%s", dataFile);
@@ -30,10 +19,7 @@ bool Volume::loadRawData(const char *filename) {
     xfSize = xiSize * xSpace;
     yfSize = yiSize * ySpace;
     zfSize = ziSize * zSpace;
-    xpSize = getPow2(xiSize);
-    ypSize = getPow2(yiSize);
-    zpSize = getPow2(ziSize);
-    double maxSize = max(max(xfSize, yfSize), zfSize);
+    double maxSize = std::max(std::max(xfSize, yfSize), zfSize);
     xfSize = xfSize / maxSize;
     yfSize = yfSize / maxSize;
     zfSize = zfSize / maxSize;
@@ -67,6 +53,44 @@ bool Volume::loadRawData(const char *filename) {
 
     fread(data, sizeof(unsigned char), xiSize * yiSize * ziSize, fp);
 
-
     return true;
+}
+
+float Volume::getVolumeValue(vec3 pos) {
+    int xIndex, yIndex, zIndex;
+
+    if (pos.x < 0 || pos.x > xiSize - 1 || pos.y < 0 || pos.y > yiSize - 1 || pos.z < 0 || pos.z > ziSize - 1) {
+        return 0;
+    }
+
+    float xFraction, yFraction, zFraction;
+    xIndex = (int) pos.x;
+    yIndex = (int) pos.y;
+    zIndex = (int) pos.z;
+    xFraction = pos.x - xIndex;
+    yFraction = pos.y - yIndex;
+    zFraction = pos.z - zIndex;
+    int xNext = (xIndex < xiSize - 1) ? 1 : 0;
+    int yNext = (yIndex < yiSize - 1) ? xiSize : 0;
+    int zNext = (zIndex < ziSize - 1) ? xiSize * yiSize : 0;
+    unsigned char f000, f001, f010, f011, f100, f101, f110, f111;
+    int index = zIndex * xiSize * yiSize + yIndex * xiSize + xIndex;
+    f000 = data[index];
+    f001 = data[index + zNext];
+    f010 = data[index + yNext];
+    f011 = data[index + yNext + zNext];
+    f100 = data[index + xNext];
+    f101 = data[index + xNext + zNext];
+    f110 = data[index + xNext + zNext];
+    f111 = data[index + xNext + yNext + zNext];
+
+    float value = f000 * (1 - xFraction) * (1 - yFraction) * (1 - zFraction) +
+                  f001 * (1 - xFraction) * (1 - yFraction) * zFraction +
+                  f010 * (1 - xFraction) * yFraction * (1 - zFraction) +
+                  f011 * (1 - xFraction) * yFraction * zFraction +
+                  f100 * xFraction * (1 - yFraction) * (1 - zFraction) +
+                  f101 * xFraction * (1 - yFraction) * zFraction +
+                  f110 * xFraction * yFraction * (1 - zFraction) +
+                  f111 * xFraction * yFraction * zFraction;
+    return value;
 }
