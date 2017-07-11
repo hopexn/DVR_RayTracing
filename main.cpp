@@ -18,10 +18,6 @@ using namespace cv;
 using namespace glm;
 
 
-double trans_func(unsigned char val) {
-    return val / 255.0;
-}
-
 /**
  * 为每一个面编号：
  * 底： 1
@@ -125,9 +121,38 @@ float caculate_leave_dist(vec3 cam_pos, vec3 ray_dir) {
     return 0;
 }
 
-float getVolumeValue(Volume volume, vec3 pos) {
+float getVolumeValue(Volume &volume, vec3 pos) {
+    int xIndex, yIndex, zIndex;
+    float xFraction, yFraction, zFraction;
+    xIndex = (int) pos.x;
+    yIndex = (int) pos.y;
+    zIndex = (int) pos.z;
+    xFraction = pos.x - xIndex;
+    yFraction = pos.y - yIndex;
+    zFraction = pos.z - zIndex;
+    int zNext = volume.xiSize * volume.yiSize;
+    int yNext = volume.xiSize;
+    int xNext = 1;
+    unsigned char f000, f001, f010, f011, f100, f101, f110, f111;
+    int index = zIndex * volume.xiSize * volume.yiSize + yIndex * volume.xiSize + xIndex;
+    f000 = volume.data[index];
+    f001 = volume.data[index + zNext];
+    f010 = volume.data[index + yNext];
+    f011 = volume.data[index + yNext + zNext];
+    f100 = volume.data[index + xNext];
+    f101 = volume.data[index + xNext + zNext];
+    f110 = volume.data[index + xNext + zNext];
+    f111 = volume.data[index + xNext + yNext + zNext];
 
-    return 0;
+    float value = f000 * (1 - xFraction) * (1 - yFraction) * (1 - zFraction) +
+                  f001 * (1 - xFraction) * (1 - yFraction) * zFraction +
+                  f010 * (1 - xFraction) * yFraction * (1 - zFraction) +
+                  f011 * (1 - xFraction) * yFraction * zFraction +
+                  f100 * xFraction * (1 - yFraction) * (1 - zFraction) +
+                  f101 * xFraction * (1 - yFraction) * zFraction +
+                  f110 * xFraction * yFraction * (1 - zFraction) +
+                  f111 * xFraction * yFraction * zFraction;
+    return value;
 }
 
 int main(int argc, char **argv) {
@@ -164,7 +189,7 @@ int main(int argc, char **argv) {
     vec3 cam_up(0, 1, 0);
     vec3 cam_right = fastNormalize(cross(cam_dir, cam_up));
 
-    float screen_dist = 8.0f;
+    float screen_dist = 9.0f;
 
     cout << caculate_enter_dist(cam_pos, cam_dir) << " " << caculate_leave_dist(cam_pos, cam_dir) << endl;
 
@@ -187,7 +212,7 @@ int main(int argc, char **argv) {
                 //TODO
                 float value;  // = volume.data[k * volume.xiSize * volume.yiSize + j * volume.yiSize + i];
                 vec3 pos(i, j, k);
-                value = getVolumeValue(&volume, pos);
+                value = getVolumeValue(volume, pos);
                 glm::vec4 color_and_alpha = volume.tf1d.trans_func(value);
                 color_cum.r = glm::min(color_cum.r + (1.0f - opacity_cum) * color_and_alpha.r, 1.0f);
                 color_cum.g = glm::min(color_cum.g + (1.0f - opacity_cum) * color_and_alpha.g, 1.0f);
