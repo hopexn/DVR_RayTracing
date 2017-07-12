@@ -56,20 +56,25 @@ bool Volume::loadRawData(const char *filename) {
     return true;
 }
 
-float Volume::getVolumeValue(vec3 pos) {
+float Volume::getVolumeValue(vec3 &pos) {
     int xIndex, yIndex, zIndex;
 
-    if (pos.x < 0 || pos.x > xiSize - 1 || pos.y < 0 || pos.y > yiSize - 1 || pos.z < 0 || pos.z > ziSize - 1) {
+    if (pos.x < 0 || pos.x > 1.0f || pos.y < 0 || pos.y > 1.0f || pos.z < 0 || pos.z > 1.0f) {
         return 0;
     }
 
     float xFraction, yFraction, zFraction;
-    xIndex = (int) pos.x;
-    yIndex = (int) pos.y;
-    zIndex = (int) pos.z;
-    xFraction = pos.x - xIndex;
-    yFraction = pos.y - yIndex;
-    zFraction = pos.z - zIndex;
+    xFraction = pos.x * xiSize;
+    yFraction = pos.y * yiSize;
+    zFraction = pos.z * ziSize;
+
+    xIndex = (int) xFraction;
+    yIndex = (int) yFraction;
+    zIndex = (int) zFraction;
+
+    xFraction = xFraction - xIndex;
+    yFraction = yFraction - yIndex;
+    zFraction = zFraction - zIndex;
     int xNext = (xIndex < xiSize - 1) ? 1 : 0;
     int yNext = (yIndex < yiSize - 1) ? xiSize : 0;
     int zNext = (zIndex < ziSize - 1) ? xiSize * yiSize : 0;

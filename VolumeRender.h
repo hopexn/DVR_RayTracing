@@ -21,7 +21,6 @@ Q_OBJECT
 public:
     VolumeRender(QWidget *parent = 0);
 
-
     void updateImage();
 
     void updateVolume(string filename);
@@ -45,10 +44,14 @@ protected:
 
 private:
     QImage *image;
+
     int width, height;
 
     vec3 cam_pos, cam_dir, cam_up, cam_right;
+
     vec3 volume_center;
+
+    vec3 cam_pos_o, cam_up_o;
 
     float cam_screen_dist;
 
@@ -60,10 +63,6 @@ private:
 
     float rotationX, rotationY, rotationZ;
 };
-
-void VolumeRender::rotate() {
-
-}
 
 
 #endif //RAYTRACING_VOLUMERENDER_H

@@ -16,7 +16,7 @@ public:
 
     bool loadRawData(const char *filename);
 
-    float getVolumeValue(vec3 pos);
+    float getVolumeValue(vec3 &pos);
 
     unsigned char *data;
 
