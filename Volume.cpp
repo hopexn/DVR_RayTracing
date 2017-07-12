@@ -3,14 +3,14 @@
 bool Volume::loadRawData(const char *filename) {
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
-        cout << "Can't open file " << filename << endl;
+        cout << "Can't open file :" << filename << endl;
         return false;
     }
 
     // read volume information
     char dataFile[1024];
     fscanf(fp, "%d %d %d\n", &xiSize, &yiSize, &ziSize);
-    fscanf(fp, "%lf %lf %lf\n", &xSpace, &ySpace, &zSpace);
+    fscanf(fp, "%f %f %f\n", &xSpace, &ySpace, &zSpace);
     fscanf(fp, "%s", dataFile);
 
     fclose(fp);
@@ -19,7 +19,7 @@ bool Volume::loadRawData(const char *filename) {
     xfSize = xiSize * xSpace;
     yfSize = yiSize * ySpace;
     zfSize = ziSize * zSpace;
-    double maxSize = std::max(std::max(xfSize, yfSize), zfSize);
+    float maxSize = std::max(std::max(xfSize, yfSize), zfSize);
     xfSize = xfSize / maxSize;
     yfSize = yfSize / maxSize;
     zfSize = zfSize / maxSize;
@@ -51,6 +51,10 @@ bool Volume::loadRawData(const char *filename) {
              << tf1d.keys[i].color.b << " " << tf1d.keys[i].color.a << endl;
     }
 
+    xfCenter = xfSize / 2;
+    yfCenter = yfSize / 2;
+    zfCenter = zfSize / 2;
+
     fread(data, sizeof(unsigned char), xiSize * yiSize * ziSize, fp);
 
     return true;
@@ -64,9 +68,9 @@ float Volume::getVolumeValue(vec3 &pos) {
     }
 
     float xFraction, yFraction, zFraction;
-    xFraction = pos.x * xiSize;
-    yFraction = pos.y * yiSize;
-    zFraction = pos.z * ziSize;
+    xFraction = (pos.x + xfSize / 2) * (xiSize - 1);
+    yFraction = (pos.y + yfSize / 2) * (yiSize - 1);
+    zFraction = (pos.z + zfSize / 2) * (ziSize - 1);
 
     xIndex = (int) xFraction;
     yIndex = (int) yFraction;
@@ -75,9 +79,11 @@ float Volume::getVolumeValue(vec3 &pos) {
     xFraction = xFraction - xIndex;
     yFraction = yFraction - yIndex;
     zFraction = zFraction - zIndex;
+
     int xNext = (xIndex < xiSize - 1) ? 1 : 0;
     int yNext = (yIndex < yiSize - 1) ? xiSize : 0;
     int zNext = (zIndex < ziSize - 1) ? xiSize * yiSize : 0;
+
     unsigned char f000, f001, f010, f011, f100, f101, f110, f111;
     int index = zIndex * xiSize * yiSize + yIndex * xiSize + xIndex;
     f000 = data[index];

@@ -18,16 +18,20 @@ public:
 
     float getVolumeValue(vec3 &pos);
 
-    unsigned char *data;
+    TF1D tf1d;
 
-    //the size of volume in three dimensions
+private:
+
     int xiSize, yiSize, ziSize;
 
-    double xSpace, ySpace, zSpace;
+    float xSpace, ySpace, zSpace;
 
-    double xfSize, yfSize, zfSize;
+    float xfSize, yfSize, zfSize;
 
-    TF1D tf1d;
+    float xfCenter, yfCenter, zfCenter;
+
+    unsigned char *data;
+
 };
 
 
