@@ -12,13 +12,19 @@ using namespace glm;
 class Volume {
 
 public:
-    Volume() {};
+    Volume() {
+        center = vec3(0.0f, 0.0f, 0.0f);
+    };
 
     bool loadRawData(const char *filename);
 
     float getVolumeValue(vec3 &pos);
 
     TF1D tf1d;
+
+    float step_dist;
+
+    vec3 center;
 
 private:
 
@@ -28,9 +34,7 @@ private:
 
     float xfSize, yfSize, zfSize;
 
-    float xfCenter, yfCenter, zfCenter;
-
-    unsigned char *data;
+    unsigned char *data = NULL;
 
 };
 

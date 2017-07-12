@@ -24,6 +24,8 @@ bool Volume::loadRawData(const char *filename) {
     yfSize = yfSize / maxSize;
     zfSize = zfSize / maxSize;
 
+    step_dist = 1.0f / maxSize;
+
     string filePath(filename);
     filePath = filePath.substr(0, filePath.rfind('/') + 1);
     filePath += dataFile;
@@ -34,8 +36,7 @@ bool Volume::loadRawData(const char *filename) {
         cout << "Can't open data file " << dataFile << endl;
         return false;
     }
-
-    delete[] data;
+    if (data == NULL) delete[] data;
     data = new unsigned char[xiSize * yiSize * ziSize];
 
     if (data == NULL) {
@@ -51,26 +52,26 @@ bool Volume::loadRawData(const char *filename) {
              << tf1d.keys[i].color.b << " " << tf1d.keys[i].color.a << endl;
     }
 
-    xfCenter = xfSize / 2;
-    yfCenter = yfSize / 2;
-    zfCenter = zfSize / 2;
-
     fread(data, sizeof(unsigned char), xiSize * yiSize * ziSize, fp);
 
     return true;
 }
 
 float Volume::getVolumeValue(vec3 &pos) {
-    int xIndex, yIndex, zIndex;
-
-    if (pos.x < 0 || pos.x > 1.0f || pos.y < 0 || pos.y > 1.0f || pos.z < 0 || pos.z > 1.0f) {
+    if (pos.x < -xfSize / 2 || pos.x > xfSize / 2
+        || pos.y < -yfSize / 2 || pos.y > yfSize / 2
+        || pos.z < -zfSize / 2 || pos.z > zfSize / 2) {
         return 0;
     }
 
+    int xIndex, yIndex, zIndex;
     float xFraction, yFraction, zFraction;
-    xFraction = (pos.x + xfSize / 2) * (xiSize - 1);
-    yFraction = (pos.y + yfSize / 2) * (yiSize - 1);
-    zFraction = (pos.z + zfSize / 2) * (ziSize - 1);
+
+    pos = pos + vec3(xfSize / 2, yfSize / 2, zfSize / 2);
+
+    xFraction = pos.x * xiSize;
+    yFraction = pos.y * yiSize;
+    zFraction = pos.z * ziSize;
 
     xIndex = (int) xFraction;
     yIndex = (int) yFraction;
@@ -86,6 +87,7 @@ float Volume::getVolumeValue(vec3 &pos) {
 
     unsigned char f000, f001, f010, f011, f100, f101, f110, f111;
     int index = zIndex * xiSize * yiSize + yIndex * xiSize + xIndex;
+
     f000 = data[index];
     f001 = data[index + zNext];
     f010 = data[index + yNext];

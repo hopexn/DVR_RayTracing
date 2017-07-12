@@ -49,11 +49,7 @@ private:
 
     vec3 cam_pos, cam_dir, cam_up, cam_right;
 
-    vec3 cam_pos_o, cam_up_o;
-
     float cam_screen_dist;
-
-    float step_dist;
 
     Volume volume;
 
