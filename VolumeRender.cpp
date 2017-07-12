@@ -10,14 +10,18 @@ VolumeRender::VolumeRender(QWidget *parent) : QWidget(parent) {
     height = 256;
     this->setFixedWidth(width);
     this->setFixedHeight(height);
+    image = new QImage(width, height, QImage::Format_RGB32);
+
     cam_pos = vec3(0.0f, 0.0f, 6.0f);
     cam_up = vec3(0.0f, 1.0f, 0.0f);
     cam_dir = fastNormalize(volume.center - cam_pos);
     cam_right = fastNormalize(cross(cam_dir, cam_up));
     cam_screen_dist = 4.0f;
+
     rotationX = (float) glm::PI / 2;
     rotationY = (float) glm::PI / 2;
     rotationZ = 0;
+
     rotate();
 }
 
@@ -132,21 +136,23 @@ void VolumeRender::updateImage() {
 //     - C'(x)表示从x到终点所有能到终点的光强之和
 //     - C(x)表示x点的发光强度
 //     - A'(x)表示从x点到终点的不透明度
-    if (image != NULL) delete image;
     float threshold = 0.8;
-    image = new QImage(width, height, QImage::Format_RGB32);
     vec3 screen_center = cam_screen_dist * cam_dir + cam_pos;
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {
-            vec3 pixel_pos = screen_center + (-0.5f + 1.0f * i / width) * cam_right +
-                             (-0.5f + 1.0f * j / height) * cam_up;
+            vec3 pixel_pos = screen_center
+                             + (-0.5f + 1.0f * i / width) * cam_right
+                             + (-0.5f + 1.0f * j / height) * cam_up;
             //光线方向
             vec3 ray_dir = fastNormalize(pixel_pos - cam_pos);
+
             //计算进入点与离开点
             float begin = caculate_enter_dist(ray_dir);
             float end = caculate_leave_dist(ray_dir);
+
             glm::vec3 color_cum(0, 0, 0);
             float opacity_cum = 0;
+
             for (int k = 0; begin + k * volume.step_dist < end; k++) {
                 vec3 pos = cam_pos + (begin + k * volume.step_dist) * ray_dir;
                 float value = volume.getVolumeValue(pos);
