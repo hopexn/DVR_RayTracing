@@ -136,7 +136,7 @@ void VolumeRender::updateImage() {
 //     - C'(x)表示从x到终点所有能到终点的光强之和
 //     - C(x)表示x点的发光强度
 //     - A'(x)表示从x点到终点的不透明度
-    float threshold = 0.8;
+    float threshold = 1.0f;
     vec3 screen_center = cam_screen_dist * cam_dir + cam_pos;
     for (int i = 0; i < width; i++) {
         for (int j = 0; j < height; j++) {

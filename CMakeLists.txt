@@ -3,6 +3,12 @@ project(RayTracing)
 
 set(CMAKE_CXX_STANDARD 11)
 
+#OpenMP
+set(CMAKE_C_COMPILER "/usr/local/bin/gcc-6")
+set(CMAKE_CXX_COMPILER "/usr/local/bin/g++-6")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
+
 #OpenCV
 find_package(OpenCV REQUIRED)
 
