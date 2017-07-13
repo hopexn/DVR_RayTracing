@@ -3,6 +3,8 @@
 #include <QLabel>
 #include <QPixmap>
 
+#define VOLUME_MAXIMUM_VALUE 255
+
 using namespace std;
 
 VolumeRender::VolumeRender(QWidget *parent) : QWidget(parent) {
@@ -18,11 +20,11 @@ VolumeRender::VolumeRender(QWidget *parent) : QWidget(parent) {
     cam_right = fastNormalize(cross(cam_dir, cam_up));
     cam_screen_dist = 4.0f;
 
-    rotationX = (float) glm::PI / 2;
-    rotationY = (float) glm::PI / 2;
+    rotationX = 0;
+    rotationY = 0;
     rotationZ = 0;
 
-    rotate();
+    //rotate();
 }
 
 void VolumeRender::paintEvent(QPaintEvent *event) {
@@ -50,77 +52,47 @@ void VolumeRender::updateVolume(string filename) {
  * 前： 5
  * 上： 6
  */
-float VolumeRender::caculate_enter_dist(vec3 ray_dir) {
+float VolumeRender::caculate_enter_leave(vec3 ray_dir, int enter_or_leave) {
     float lamda = 0.0f;
     vec3 dst_pos;
 
-    if (cam_pos.x > 0.0f) {
-        lamda = (0.5f - cam_pos.x) / ray_dir.x;
+    if ((cam_pos.x > 0.0f) ^ enter_or_leave) {
+        lamda = (0.5f * volume.xfSize - cam_pos.x) / ray_dir.x;
     } else {
-        lamda = (-0.5f - cam_pos.x) / ray_dir.x;
+        lamda = (-0.5f * volume.xfSize - cam_pos.x) / ray_dir.x;
     }
     dst_pos = cam_pos + lamda * ray_dir;
-    if (dst_pos.y > -0.5f && dst_pos.y < 0.5f && dst_pos.z > -0.5f && dst_pos.z < 0.5f) {
+    if (dst_pos.y > -0.5f * volume.yfSize && dst_pos.y < 0.5f * volume.yfSize
+        && dst_pos.z > -0.5f * volume.zfSize && dst_pos.z < 0.5f * volume.zfSize) {
         return lamda;
     }
 
-    if (cam_pos.y > 0.0f) {
-        lamda = (0.5f - cam_pos.y) / ray_dir.y;
+    if ((cam_pos.y > 0.0f) ^ enter_or_leave) {
+        lamda = (0.5f * volume.yfSize - cam_pos.y) / ray_dir.y;
     } else {
-        lamda = (-0.5f - cam_pos.y) / ray_dir.y;
+        lamda = (-0.5f * volume.yfSize - cam_pos.y) / ray_dir.y;
     }
     dst_pos = cam_pos + lamda * ray_dir;
-    if (dst_pos.x > -0.5f && dst_pos.x < 0.5f && dst_pos.z > -0.5f && dst_pos.z < 0.5f) {
+    if (dst_pos.x > -0.5f * volume.xfSize && dst_pos.x < 0.5f * volume.xfSize
+        && dst_pos.z > -0.5f * volume.zfSize && dst_pos.z < 0.5f * volume.zfSize) {
         return lamda;
     }
 
-    if (cam_pos.z > 0.0f) {
-        lamda = (0.5f - cam_pos.z) / ray_dir.z;
+    if ((cam_pos.z > 0.0f) ^ enter_or_leave) {
+        lamda = (0.5f * volume.zfSize - cam_pos.z) / ray_dir.z;
     } else {
-        lamda = (-0.5f - cam_pos.z) / ray_dir.z;
+        lamda = (-0.5f * volume.zfSize - cam_pos.z) / ray_dir.z;
     }
     dst_pos = cam_pos + lamda * ray_dir;
-    if (dst_pos.x > -0.5f && dst_pos.x < 0.5f && dst_pos.y > -0.5f && dst_pos.y < 0.5f) {
+    if (dst_pos.x > -0.5f * volume.xfSize && dst_pos.x < 0.5f * volume.xfSize
+        && dst_pos.y > -0.5f * volume.yfSize && dst_pos.y < 0.5f * volume.yfSize) {
         return lamda;
     }
-    return 0;
-}
-
-float VolumeRender::caculate_leave_dist(vec3 ray_dir) {
-    float lamda = 0.0f;
-    vec3 dst_pos;
-
-    if (cam_pos.x < 0.0f) {
-        lamda = (0.5f - cam_pos.x) / ray_dir.x;
+    if (!enter_or_leave) {
+        return INFINITY;
     } else {
-        lamda = (-0.5f - cam_pos.x) / ray_dir.x;
+        return 0;
     }
-    dst_pos = cam_pos + lamda * ray_dir;
-    if (dst_pos.y > -0.5f && dst_pos.y < 0.5f && dst_pos.z > -0.5f && dst_pos.z < 0.5f) {
-        return lamda;
-    }
-
-    if (cam_pos.y < 0.0f) {
-        lamda = (0.5f - cam_pos.y) / ray_dir.y;
-    } else {
-        lamda = (-0.5f - cam_pos.y) / ray_dir.y;
-    }
-    dst_pos = cam_pos + lamda * ray_dir;
-    if (dst_pos.x > -0.5f && dst_pos.x < 0.5f && dst_pos.z > -0.5f && dst_pos.z < 0.5f) {
-        return lamda;
-    }
-
-    if (cam_pos.z < 0.0f) {
-        lamda = (0.5f - cam_pos.z) / ray_dir.z;
-    } else {
-        lamda = (-0.5f - cam_pos.z) / ray_dir.z;
-    }
-    dst_pos = cam_pos + lamda * ray_dir;
-    if (dst_pos.x > -0.5f && dst_pos.x < 0.5f && dst_pos.y > -0.5f && dst_pos.y < 0.5f) {
-        return lamda;
-    }
-
-    return 0;
 }
 
 void VolumeRender::updateImage() {
@@ -147,8 +119,8 @@ void VolumeRender::updateImage() {
             vec3 ray_dir = fastNormalize(pixel_pos - cam_pos);
 
             //计算进入点与离开点
-            float begin = caculate_enter_dist(ray_dir);
-            float end = caculate_leave_dist(ray_dir);
+            float begin = caculate_enter_leave(ray_dir, 0);
+            float end = caculate_enter_leave(ray_dir, 1);
 
             glm::vec3 color_cum(0, 0, 0);
             float opacity_cum = 0;
@@ -163,9 +135,6 @@ void VolumeRender::updateImage() {
                 opacity_cum = glm::min(opacity_cum + (1.0f - opacity_cum) * color_and_alpha.a, threshold);
                 if (opacity_cum >= threshold) break;
             }
-            color_cum.r = glm::min(color_cum.r, 1.0f);
-            color_cum.g = glm::min(color_cum.g, 1.0f);
-            color_cum.b = glm::min(color_cum.b, 1.0f);
             image->setPixel(i, j, qRgb((int) (255 * (1 - color_cum.r)),
                                        (int) (255 * (1 - color_cum.g)),
                                        (int) (255 * (1 - color_cum.b))));
@@ -203,28 +172,31 @@ void VolumeRender::rotate() {
     float m00, m01, m02, m10, m11, m12, m20, m21, m22;
 
 
-    m00 = cosf(theta) + (u * u) * (1 - cosf(theta));
-    m01 = u * v * (1 - cosf(theta)) + w * sinf(theta);
-    m02 = u * w * (1 - cosf(theta)) - v * sinf(theta);
-
-    m10 = u * v * (1 - cosf(theta)) - w * sinf(theta);
-    m11 = cosf(theta) + v * v * (1 - cosf(theta));
-    m12 = w * v * (1 - cosf(theta)) + u * sinf(theta);
-
-
-    m20 = u * w * (1 - cosf(theta)) + v * sinf(theta);
-    m21 = v * w * (1 - cosf(theta)) - u * sinf(theta);
-    m22 = cosf(theta) + w * w * (1 - cosf(theta));
-
-    cam_pos.x = cam_pos.x * m00 + cam_pos.y * m01 + cam_pos.z * m02;
-    cam_pos.y = cam_pos.x * m10 + cam_pos.y * m11 + cam_pos.z * m12;
-    cam_pos.z = cam_pos.x * m20 + cam_pos.y * m21 + cam_pos.z * m22;
-
-    if (cam_pos == cam_pos) {
-        cam_right = vec3(1, 0, 0);
-    } else {
-        cam_right = fastNormalize(cam_pos - cam_pos);
-    }
+//    m00 = cosf(theta) + (u * u) * (1 - cosf(theta));
+//    m01 = u * v * (1 - cosf(theta)) + w * sinf(theta);
+//    m02 = u * w * (1 - cosf(theta)) - v * sinf(theta);
+//
+//    m10 = u * v * (1 - cosf(theta)) - w * sinf(theta);
+//    m11 = cosf(theta) + v * v * (1 - cosf(theta));
+//    m12 = w * v * (1 - cosf(theta)) + u * sinf(theta);
+//
+//
+//    m20 = u * w * (1 - cosf(theta)) + v * sinf(theta);
+//    m21 = v * w * (1 - cosf(theta)) - u * sinf(theta);
+//    m22 = cosf(theta) + w * w * (1 - cosf(theta));
+//
+//    cam_pos.x = cam_pos.x * m00 + cam_pos.y * m01 + cam_pos.z * m02;
+//    cam_pos.y = cam_pos.x * m10 + cam_pos.y * m11 + cam_pos.z * m12;
+//    cam_pos.z = cam_pos.x * m20 + cam_pos.y * m21 + cam_pos.z * m22;
+//
+//    if (cam_pos == cam_pos) {
+//        cam_right = vec3(1, 0, 0);
+//    } else {
+//        cam_right = fastNormalize(cam_pos - cam_pos);
+//    }
+    cam_pos.y = cam_pos.y;
+    cam_pos.x = cam_pos.x * cosf(rotationY) - cam_pos.z * sinf(rotationY);
+    cam_pos.y = cam_pos.x * cosf(rotationY) + cam_pos.y * sinf(rotationY);
 
     cout << "cam_up:" << cam_up.x << " " << cam_up.y << " " << cam_up.z << endl;
     double dist = glm::pow(cam_pos.x, 2) + glm::pow(cam_pos.y, 2) + glm::pow(cam_pos.z, 2);

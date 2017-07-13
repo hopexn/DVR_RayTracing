@@ -19,12 +19,16 @@ bool Volume::loadRawData(const char *filename) {
     xfSize = xiSize * xSpace;
     yfSize = yiSize * ySpace;
     zfSize = ziSize * zSpace;
-    float maxSize = std::max(std::max(xfSize, yfSize), zfSize);
+
+    maxSize = std::max(std::max(xfSize, yfSize), zfSize);
+
     xfSize = xfSize / maxSize;
     yfSize = yfSize / maxSize;
     zfSize = zfSize / maxSize;
+    cout << "iSize: " << xiSize << " " << yiSize << " " << ziSize << endl;
+    cout << "fSize: " << xfSize << " " << yfSize << " " << zfSize << endl;
 
-    step_dist = 1.0f / maxSize;
+    step_dist = 3.0f / maxSize;
 
     string filePath(filename);
     filePath = filePath.substr(0, filePath.rfind('/') + 1);
@@ -57,10 +61,12 @@ bool Volume::loadRawData(const char *filename) {
     return true;
 }
 
-float Volume::getVolumeValue(vec3 &pos) {
-    if (pos.x < -xfSize / 2 || pos.x > xfSize / 2
-        || pos.y < -yfSize / 2 || pos.y > yfSize / 2
-        || pos.z < -zfSize / 2 || pos.z > zfSize / 2) {
+
+
+float Volume::getVolumeValue(vec3 pos) {
+    if (pos.x <= -xfSize / 2 || pos.x >= xfSize / 2
+        || pos.y <= -yfSize / 2 || pos.y >= yfSize / 2
+        || pos.z <= -zfSize / 2 || pos.z >= zfSize / 2) {
         return 0;
     }
 
@@ -69,9 +75,10 @@ float Volume::getVolumeValue(vec3 &pos) {
 
     pos = pos + vec3(xfSize / 2, yfSize / 2, zfSize / 2);
 
-    xFraction = pos.x * xiSize;
-    yFraction = pos.y * yiSize;
-    zFraction = pos.z * ziSize;
+
+    xFraction = pos.x * maxSize;
+    yFraction = pos.y * maxSize;
+    zFraction = pos.z * maxSize;
 
     xIndex = (int) xFraction;
     yIndex = (int) yFraction;

@@ -29,9 +29,7 @@ public:
         delete image;
     }
 
-    float caculate_enter_dist(vec3 ray_dir);
-
-    float caculate_leave_dist(vec3 ray_dir);
+    float caculate_enter_leave(vec3 ray_dir, int enter_or_leave);
 
 protected:
     void paintEvent(QPaintEvent *event);

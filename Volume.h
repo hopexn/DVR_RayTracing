@@ -18,7 +18,7 @@ public:
 
     bool loadRawData(const char *filename);
 
-    float getVolumeValue(vec3 &pos);
+    float getVolumeValue(vec3 pos);
 
     TF1D tf1d;
 
@@ -26,9 +26,9 @@ public:
 
     vec3 center;
 
-private:
-
     int xiSize, yiSize, ziSize;
+
+    float maxSize;
 
     float xSpace, ySpace, zSpace;
 
