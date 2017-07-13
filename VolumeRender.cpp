@@ -14,17 +14,15 @@ VolumeRender::VolumeRender(QWidget *parent) : QWidget(parent) {
     this->setFixedHeight(height);
     image = new QImage(width, height, QImage::Format_RGB32);
 
-    cam_pos = vec3(0.0f, 0.0f, 6.0f);
-    cam_up = vec3(0.0f, 1.0f, 0.0f);
-    cam_dir = fastNormalize(volume.center - cam_pos);
-    cam_right = fastNormalize(cross(cam_dir, cam_up));
+    cam_pos_init = vec3(0.0f, 0.0f, 6.0f);
+    cam_right_init = vec3(1.0f, 0.0f, 0.0f);
     cam_screen_dist = 4.0f;
 
     rotationX = 0;
     rotationY = 0;
     rotationZ = 0;
 
-    //rotate();
+    rotate();
 }
 
 void VolumeRender::paintEvent(QPaintEvent *event) {
@@ -152,8 +150,8 @@ void VolumeRender::mouseMoveEvent(QMouseEvent *event) {
     float dy = float(event->y() - last_pos.y()) / height;
 
     if (event->buttons() & Qt::LeftButton) {
-        rotationX += 3.14 * dy;
-        rotationY += 3.14 * dx;
+        rotationX += 3.14 * dx;
+        rotationY += 3.14 * dy;
         rotate();
         updateImage();
         repaint();
@@ -163,47 +161,50 @@ void VolumeRender::mouseMoveEvent(QMouseEvent *event) {
 
 
 void VolumeRender::rotate() {
+    if (rotationX == 0 && rotationY == 0) {
+        cam_pos = cam_pos_init;
+        cam_right = cam_right_init;
+        cam_dir = fastNormalize(volume.center - cam_pos);
+        cam_up = fastNormalize(cross(cam_dir, cam_right));
+        return;
+    }
     vec3 axis = fastNormalize(cross(vec3(0, 0, 1), vec3(rotationX, rotationY, 0)));
-    float theta = (float) glm::sqrt(glm::pow(rotationX, 2) + glm::pow(rotationY, 2));
+    int sign = rotationX * rotationY > 0 ? 1 : -1;
+    float theta = (float) (glm::sqrt(glm::pow(rotationX, 2) + glm::pow(rotationY, 2)));
 
     float u = axis.x;
     float v = axis.y;
     float w = axis.z;
     float m00, m01, m02, m10, m11, m12, m20, m21, m22;
 
+    m00 = cosf(theta) + (u * u) * (1 - cosf(theta));
+    m01 = u * v * (1 - cosf(theta)) + w * sinf(theta);
+    m02 = u * w * (1 - cosf(theta)) - v * sinf(theta);
 
-//    m00 = cosf(theta) + (u * u) * (1 - cosf(theta));
-//    m01 = u * v * (1 - cosf(theta)) + w * sinf(theta);
-//    m02 = u * w * (1 - cosf(theta)) - v * sinf(theta);
-//
-//    m10 = u * v * (1 - cosf(theta)) - w * sinf(theta);
-//    m11 = cosf(theta) + v * v * (1 - cosf(theta));
-//    m12 = w * v * (1 - cosf(theta)) + u * sinf(theta);
-//
-//
-//    m20 = u * w * (1 - cosf(theta)) + v * sinf(theta);
-//    m21 = v * w * (1 - cosf(theta)) - u * sinf(theta);
-//    m22 = cosf(theta) + w * w * (1 - cosf(theta));
-//
-//    cam_pos.x = cam_pos.x * m00 + cam_pos.y * m01 + cam_pos.z * m02;
-//    cam_pos.y = cam_pos.x * m10 + cam_pos.y * m11 + cam_pos.z * m12;
-//    cam_pos.z = cam_pos.x * m20 + cam_pos.y * m21 + cam_pos.z * m22;
-//
-//    if (cam_pos == cam_pos) {
-//        cam_right = vec3(1, 0, 0);
-//    } else {
-//        cam_right = fastNormalize(cam_pos - cam_pos);
-//    }
-    cam_pos.y = cam_pos.y;
-    cam_pos.x = cam_pos.x * cosf(rotationY) - cam_pos.z * sinf(rotationY);
-    cam_pos.y = cam_pos.x * cosf(rotationY) + cam_pos.y * sinf(rotationY);
+    m10 = u * v * (1 - cosf(theta)) - w * sinf(theta);
+    m11 = cosf(theta) + v * v * (1 - cosf(theta));
+    m12 = w * v * (1 - cosf(theta)) + u * sinf(theta);
 
-    cout << "cam_up:" << cam_up.x << " " << cam_up.y << " " << cam_up.z << endl;
-    double dist = glm::pow(cam_pos.x, 2) + glm::pow(cam_pos.y, 2) + glm::pow(cam_pos.z, 2);
-    cout << "cam_pos:" << cam_pos.x << " " << cam_pos.y << " " << cam_pos.z << " " << dist << endl;
-    cout << "rotate:" << rotationX << " " << rotationY << " " << rotationZ << endl;
+    m20 = u * w * (1 - cosf(theta)) + v * sinf(theta);
+    m21 = v * w * (1 - cosf(theta)) - u * sinf(theta);
+    m22 = cosf(theta) + w * w * (1 - cosf(theta));
+
+    cam_pos.x = cam_pos_init.x * m00 + cam_pos_init.y * m01 + cam_pos_init.z * m02;
+    cam_pos.y = cam_pos_init.x * m10 + cam_pos_init.y * m11 + cam_pos_init.z * m12;
+    cam_pos.z = cam_pos_init.x * m20 + cam_pos_init.y * m21 + cam_pos_init.z * m22;
+
+    cam_right.x = cam_right_init.x * m00 + cam_right_init.y * m01 + cam_right_init.z * m02;
+    cam_right.y = cam_right_init.x * m10 + cam_right_init.y * m11 + cam_right_init.z * m12;
+    cam_right.z = cam_right_init.x * m20 + cam_right_init.y * m21 + cam_right_init.z * m22;
 
     cam_dir = fastNormalize(volume.center - cam_pos);
     cam_up = fastNormalize(cross(cam_dir, cam_right));
+
+    double dist = glm::pow(cam_pos.x, 2) + glm::pow(cam_pos.y, 2) + glm::pow(cam_pos.z, 2);
+    cout << "cam_pos:" << cam_pos.x << " " << cam_pos.y << " " << cam_pos.z << " " << dist << endl;
+    cout << "cam_right:" << cam_right.x << " " << cam_right.y << " " << cam_right.z << endl;
+    cout << "cam_up:" << cam_up.x << " " << cam_up.y << " " << cam_up.z << endl;
+
+    cout << "rotate:" << rotationX << " " << rotationY << " " << rotationZ << endl;
 }
 

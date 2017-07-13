@@ -47,6 +47,8 @@ private:
 
     vec3 cam_pos, cam_dir, cam_up, cam_right;
 
+    vec3 cam_pos_init, cam_dir_init, cam_up_init, cam_right_init;
+
     float cam_screen_dist;
 
     Volume volume;
